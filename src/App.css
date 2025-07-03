@@ -129,6 +129,61 @@ button:focus-visible {
   margin-bottom: 1rem;
 }
 
+/* Configuration display styles */
+.config-display {
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
+}
+
+.config-display h3 {
+  margin-top: 0;
+  color: #333;
+  font-size: 1.2rem;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.config-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.config-section {
+  background-color: white;
+  padding: 0.75rem;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.config-section h4 {
+  margin-top: 0;
+  color: var(--primary-color, #646cff);
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.config-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.config-section li {
+  padding: 0.25rem 0;
+  font-size: 0.9rem;
+  border-bottom: 1px dotted #eee;
+}
+
+.config-section li:last-child {
+  border-bottom: none;
+}
+
 .error-message button {
   background-color: transparent;
   color: #f44336;

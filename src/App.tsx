@@ -17,6 +17,34 @@ function App() {
   const [progress, setProgress] = useState<number>(0)
   const [progressOperation, setProgressOperation] = useState<string>('')
   const [errorMessage, setErrorMessage] = useState<string>('')
+  const [configData, setConfigData] = useState<any>(null)
+  
+  // Load INI configuration when component mounts
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        setProgressOperation('Loading configuration...')
+        setProgress(50)
+        
+        const config = await window.ipcRenderer.invoke('get-config-data')
+        setConfigData(config)
+        
+        // Set initial folder if specified in config
+        if (config?.AppSettings?.DefaultFolderPath && config.Features?.OpenLastFolder) {
+          setCurrentFolder(config.AppSettings.DefaultFolderPath)
+        }
+        
+        setProgress(100)
+        setTimeout(() => setProgress(0), 1000)
+      } catch (error) {
+        console.error('Error loading configuration:', error)
+        setErrorMessage('Failed to load configuration')
+        setProgress(0)
+      }
+    }
+    
+    loadConfig()
+  }, [])
   
   // Load folder contents when the current folder changes
   useEffect(() => {
@@ -104,7 +132,7 @@ function App() {
   return (
     <div className="container">
       <div className="header">
-        <h1>Electron File Explorer</h1>
+        <h1>{configData?.AppSettings?.Title || 'Electron File Explorer'}</h1>
         <div className="logo-container">
           <img src={viteLogo} className="logo" alt="Vite logo" />
           <img src={reactLogo} className="logo react" alt="React logo" />
@@ -139,6 +167,27 @@ function App() {
       {currentFolder && (
         <div className="current-path">
           <strong>Current folder:</strong> {currentFolder}
+        </div>
+      )}
+      
+      {/* INI Configuration */}
+      {configData && (
+        <div className="config-display">
+          <h3>Configuration Settings (from INI file)</h3>
+          <div className="config-sections">
+            {Object.keys(configData).map(section => (
+              <div key={section} className="config-section">
+                <h4>{section}</h4>
+                <ul>
+                  {Object.entries(configData[section]).map(([key, value]) => (
+                    <li key={key}>
+                      <strong>{key}:</strong> {String(value)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
       )}
       

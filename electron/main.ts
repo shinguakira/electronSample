@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import { exec } from 'node:child_process'
+import * as ini from 'ini'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -23,6 +24,23 @@ export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
+
+// Define a variable to store our INI configuration
+let configData: any = {}
+
+// Function to load the INI file
+async function loadIniFile() {
+  try {
+    const iniPath = path.join(process.env.APP_ROOT as string, 'settings.ini')
+    const fileContent = await fs.readFile(iniPath, 'utf-8')
+    configData = ini.parse(fileContent)
+    console.log('INI file loaded:', configData)
+    return configData
+  } catch (error) {
+    console.error('Error loading INI file:', error)
+    return {}
+  }
+}
 
 let win: BrowserWindow | null
 
@@ -66,7 +84,15 @@ app.on('activate', () => {
 })
 
 // IPC handlers for folder operations
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Load INI file when app starts
+  await loadIniFile()
+  
+  // IPC handler to get config data
+  ipcMain.handle('get-config-data', () => {
+    return configData
+  })
+  
   // Open folder dialog
   ipcMain.handle('open-folder-dialog', async () => {
     const result = await dialog.showOpenDialog({
