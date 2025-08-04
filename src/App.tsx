@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/electron-vite.animate.svg'
 import './App.css'
+import { Button } from './components/ui/button'
 
 // Define interface for folder items
 interface FolderItem {
@@ -499,9 +500,11 @@ function App() {
       
       <div className="controls">
         <div className="control-group">
-          <button onClick={openFolderDialog} className="primary-button">Load Patient Images</button>
-          {currentFolder && <button onClick={navigateToParent}>Parent Folder</button>}
-          <button onClick={() => openNotepad()} className="utility-button">Open Notepad</button>
+          <Button onClick={openFolderDialog} variant="default">
+            {currentFolder ? 'Change Folder' : 'Open Folder'}
+          </Button>
+          {currentFolder && <Button onClick={navigateToParent}>Parent Folder</Button>}
+          <Button onClick={() => openNotepad()} variant="default">Open Notepad</Button>
         </div>
         
         <div className="control-group">
