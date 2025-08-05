@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/electron-vite.animate.svg";
 import "./globals.css";
@@ -20,7 +20,9 @@ interface PythonResult {
 
 function App() {
   // Helper function to format execution time in a human-readable format
-  const formatExecutionTime = (milliseconds: number): string => {
+  const formatExecutionTime = (milliseconds: number | null): string => {
+    if (!milliseconds) return '0ms';
+    
     if (milliseconds < 1000) {
       return `${milliseconds}ms`;
     }
@@ -37,14 +39,20 @@ function App() {
       return `${seconds}s`;
     }
   };
+
+  // Set up state
+  const [folderPath, setFolderPath] = useState("");
+  const [folderContents, setFolderContents] = useState<FolderItem[]>([]);
+  const [selectedFilePath, setSelectedFilePath] = useState("");
+  const [executionTime, setExecutionTime] = useState<number | null>(null);
+  const [menuActionMessage, setMenuActionMessage] = useState<string | null>(null);
+
   // State variables
   const [currentFolder, setCurrentFolder] = useState<string>("");
-  const [folderContents, setFolderContents] = useState<FolderItem[]>([]);
   const [progress, setProgress] = useState<number>(0);
   const [progressOperation, setProgressOperation] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [configData, setConfigData] = useState<any>(null);
-  const [executionTime, setExecutionTime] = useState<number>(0);
 
   // Python execution state
   const [pythonCode, setPythonCode] = useState<string>(
@@ -72,6 +80,8 @@ function App() {
   const [correctingCalibrationProgress, setCorrectingCalibrationProgress] =
     useState<number>(0);
 
+  // We'll declare handleMenuAction after all other functions are declared to avoid "used before declaration" errors
+  
   // Check if Python is installed when component mounts
   useEffect(() => {
     const checkPythonInstalled = async () => {
@@ -497,10 +507,97 @@ function App() {
     }, 1500);
   };
 
+  // Handle menu actions from the main process
+  const handleMenuAction = useCallback(async (event: any, data: { action: string; path?: string }) => {
+    console.log('Menu action received:', data.action)
+    
+    // Log the menu action
+    try {
+      await window.ipcRenderer?.invoke('log-event', `Menu action: ${data.action}`, 'info')
+      await window.ipcRenderer?.invoke('log-data', {
+        event: 'menu_action',
+        action: data.action,
+        path: data.path || ''
+      })
+    } catch (error) {
+      console.error('Error logging menu action:', error)
+    }
+    
+    // Set message to display in UI
+    setMenuActionMessage(`Menu action: ${data.action}${data.path ? ` - Path: ${data.path}` : ''}`);
+    
+    // Handle specific actions
+    switch (data.action) {
+      case 'open-folder':
+        if (data.path) {
+          setFolderPath(data.path);
+          setCurrentFolder(data.path);
+          await loadFolderContents(data.path);
+        }
+        break;
+        
+      case 'open-file':
+        if (data.path) {
+          setSelectedFilePath(data.path);
+          const ext = data.path.toLowerCase().split('.').pop();
+          if (ext === 'py') {
+            runPythonFile(data.path);
+          } else if (ext === 'exe') {
+            selectExeFile();
+          } else {
+            openNotepad(data.path);
+          }
+        }
+        break;
+        
+      case 'export-log':
+        // Show message that logs are exported
+        setMenuActionMessage('Application logs have been exported');
+        break;
+        
+      case 'run-python':
+        selectPythonFile();
+        break;
+        
+      case 'run-exe':
+        selectExeFile();
+        break;
+        
+      case 'calibration-wizard':
+      case 'batch-processing':
+      case 'check-updates':
+        setMenuActionMessage(`Feature not yet implemented: ${data.action}`);
+        break;
+    }
+    
+    // Clear message after 5 seconds
+    setTimeout(() => setMenuActionMessage(null), 5000);
+  }, [loadFolderContents, openNotepad, runPythonFile, selectExeFile, selectPythonFile]);
+  
+  // Register menu action listener
+  useEffect(() => {
+    // Add event listener for menu actions
+    if (window.ipcRenderer) {
+      window.ipcRenderer.on('menu-action', handleMenuAction);
+    }
+    
+    // Cleanup: remove event listener when component unmounts
+    return () => {
+      if (window.ipcRenderer) {
+        window.ipcRenderer.off('menu-action', handleMenuAction);
+      }
+    };
+  }, [handleMenuAction]);
+  
   return (
     <div className="container">
       <div className="min-h-screen bg-background">
         <DroneImageAnalysisTool />
+        {menuActionMessage && (
+          <div className="fixed bottom-4 right-4 bg-primary text-primary-foreground p-4 rounded-md shadow-lg">
+            {menuActionMessage}
+          </div>
+        )}
       </div>
       <div className="header">
         <h1>

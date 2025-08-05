@@ -84,10 +84,23 @@ export function DroneImageAnalysisTool() {
   useEffect(() => {
     const updateSessionTime = async () => {
       try {
-        const time = await window.ipcRenderer?.invoke("get-session-time")
+        // Use the new preloaded function instead of direct invoke
+        const time = await window.ipcRenderer?.api.getSessionTime()
         setSessionTime(time || 0)
+        
+        // Only log session time update to CSV (notifications removed per user request)
+        await window.ipcRenderer?.api.logData({
+          event: 'session_time_updated',
+          sessionTimeMs: time
+        })
       } catch (error) {
         console.error("セッション時間の取得エラー:", error)
+        
+        // Log error
+        await window.ipcRenderer?.api.logEvent(
+          `Session time fetch error: ${error}`, 
+          'error'
+        )
       }
     }
 
